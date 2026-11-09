@@ -1,0 +1,6 @@
+@SiApi_HostAddress = http://localhost:5190
+
+GET {{SiApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
