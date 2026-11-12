@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SiApi.Models
 {
@@ -10,14 +11,14 @@ namespace SiApi.Models
         [Required]
         public string NimMahasiswa { get; set; } = string.Empty;
 
-        [Required]
-        public string NamaMahasiswa { get; set; } = string.Empty; // Tambahan data
+        [ForeignKey("NimMahasiswa")]
+        public Mahasiswa? Mahasiswa { get; set; } // Foreign Key ke tabel Mahasiswa
 
         [Required]
         public int JadwalKuliahId { get; set; }
 
-        [Required]
-        public string NamaMataKuliah { get; set; } = string.Empty; // Tambahan data
+        [ForeignKey("JadwalKuliahId")]
+        public JadwalKuliah? JadwalKuliah { get; set; } // Foreign Key ke tabel Jadwal
 
         [Required]
         public double Latitude { get; set; }
@@ -26,9 +27,7 @@ namespace SiApi.Models
         public double Longitude { get; set; }
 
         public DateTime WaktuPresensi { get; set; } = DateTime.Now;
-
-        public string Status { get; set; } = "Hadir"; // Hadir, Izin, Sakit, Alpa
-
-        public string? Keterangan { get; set; } // Tambahan data opsional
+        public string Status { get; set; } = "Hadir";
+        public string? Keterangan { get; set; }
     }
 }

@@ -5,12 +5,12 @@ namespace SiApi.Models
     public class Mahasiswa
     {
         [Key]
-        public string Nim { get; set; }
+        public string Nim { get; set; } = string.Empty; // Primary Key
 
         [Required]
-        public string NamaLengkap { get; set; }
+        public string Nama { get; set; } = string.Empty;
 
-        [Required]
-        public string Kelas { get; set; }
+        // Relasi (1 Mahasiswa bisa punya banyak Presensi)
+        public ICollection<Presensi>? DaftarPresensi { get; set; }
     }
 }

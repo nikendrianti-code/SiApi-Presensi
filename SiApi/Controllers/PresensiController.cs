@@ -55,11 +55,14 @@ namespace SiApi.Controllers
             }
         }
 
-        // 2. READ: Mendapatkan seluruh daftar riwayat presensi
+        // 2. READ: Mendapatkan seluruh daftar riwayat presensi (Beserta data relasinya)
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Presensi>>> GetAllPresensi()
         {
-            var list = await _context.Presensi.ToListAsync();
+            var list = await _context.Presensi
+                .Include(p => p.Mahasiswa)
+                .Include(p => p.JadwalKuliah)
+                .ToListAsync();
             return Ok(list);
         }
 
@@ -67,7 +70,11 @@ namespace SiApi.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Presensi>> GetPresensiById(int id)
         {
-            var presensi = await _context.Presensi.FindAsync(id);
+            var presensi = await _context.Presensi
+                .Include(p => p.Mahasiswa)
+                .Include(p => p.JadwalKuliah)
+                .FirstOrDefaultAsync(p => p.Id == id);
+
             if (presensi == null)
             {
                 return NotFound(new { message = "Data presensi tidak ditemukan." });
@@ -75,7 +82,7 @@ namespace SiApi.Controllers
             return Ok(presensi);
         }
 
-        // 4. UPDATE: Mengubah data presensi (misal mengubah status Hadir jadi Izin/Sakit)
+        // 4. UPDATE: Mengubah data presensi (Status & Keterangan)
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdatePresensi(int id, [FromBody] Presensi model)
         {
@@ -90,7 +97,6 @@ namespace SiApi.Controllers
                 return NotFound(new { message = "Data presensi yang akan diubah tidak ditemukan." });
             }
 
-            existingPresensi.NamaMahasiswa = model.NamaMahasiswa;
             existingPresensi.Status = model.Status;
             existingPresensi.Keterangan = model.Keterangan;
 

@@ -22,6 +22,37 @@ namespace SiApi.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("SiApi.Models.JadwalKuliah", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("NamaMataKuliah")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("JadwalKuliah");
+                });
+
+            modelBuilder.Entity("SiApi.Models.Mahasiswa", b =>
+                {
+                    b.Property<string>("Nim")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Nama")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Nim");
+
+                    b.ToTable("Mahasiswa");
+                });
+
             modelBuilder.Entity("SiApi.Models.Presensi", b =>
                 {
                     b.Property<int>("Id")
@@ -42,17 +73,9 @@ namespace SiApi.Migrations
                     b.Property<double>("Longitude")
                         .HasColumnType("float");
 
-                    b.Property<string>("NamaMahasiswa")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("NamaMataKuliah")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("NimMahasiswa")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -63,7 +86,40 @@ namespace SiApi.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("JadwalKuliahId");
+
+                    b.HasIndex("NimMahasiswa");
+
                     b.ToTable("Presensi");
+                });
+
+            modelBuilder.Entity("SiApi.Models.Presensi", b =>
+                {
+                    b.HasOne("SiApi.Models.JadwalKuliah", "JadwalKuliah")
+                        .WithMany("DaftarPresensi")
+                        .HasForeignKey("JadwalKuliahId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SiApi.Models.Mahasiswa", "Mahasiswa")
+                        .WithMany("DaftarPresensi")
+                        .HasForeignKey("NimMahasiswa")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("JadwalKuliah");
+
+                    b.Navigation("Mahasiswa");
+                });
+
+            modelBuilder.Entity("SiApi.Models.JadwalKuliah", b =>
+                {
+                    b.Navigation("DaftarPresensi");
+                });
+
+            modelBuilder.Entity("SiApi.Models.Mahasiswa", b =>
+                {
+                    b.Navigation("DaftarPresensi");
                 });
 #pragma warning restore 612, 618
         }
