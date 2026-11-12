@@ -2,71 +2,136 @@
 using Microsoft.EntityFrameworkCore;
 using SiApi.Data;
 using SiApi.Models;
-using SiApi.Data;
-using SiApi.Models;
-using System;
-using System.Threading.Tasks;
 
-namespace SiatApi.Controllers
+namespace SiApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
     public class PresensiController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        readonly AppDbContext _context;
+
+        const double TargetLat = -7.4245;
+        const double TargetLon = 109.2291;
+        const double MaxRadiusKm = 0.5; // Radius 500 meter
 
         public PresensiController(AppDbContext context)
         {
             _context = context;
         }
 
+        // 1. CREATE (Submit Presensi dengan Validasi Radius & Duplikasi)
         [HttpPost("submit")]
-        public async Task<IActionResult> SubmitPresensi([FromBody] Presensi request)
+        public async Task<IActionResult> SubmitPresensi([FromBody] Presensi model)
         {
-            // 1. Membuka transaksi untuk mengunci proses (mencegah race condition)
+            double distance = CalculateDistance(TargetLat, TargetLon, model.Latitude, model.Longitude);
+            if (distance > MaxRadiusKm)
+            {
+                return BadRequest(new { message = "Gagal: Anda berada di luar radius lokasi presensi yang diizinkan." });
+            }
+
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // 2. Cek apakah NIM tersebut sudah absen pada Jadwal yang sama
-                bool isSudahAbsen = await _context.Presensi
-                    .AnyAsync(p => p.NimMahasiswa == request.NimMahasiswa &&
-                                   p.JadwalKuliahId == request.JadwalKuliahId);
+                bool alreadyExists = await _context.Presensi
+                    .AnyAsync(p => p.NimMahasiswa == model.NimMahasiswa && p.JadwalKuliahId == model.JadwalKuliahId);
 
-                if (isSudahAbsen)
+                if (alreadyExists)
                 {
-                    return Conflict(new { message = "Mahasiswa sudah melakukan presensi." });
+                    return Conflict(new { message = "Gagal: Mahasiswa sudah melakukan presensi pada jadwal ini." });
                 }
 
-                // 3. Validasi Geolocation (Toleransi radius koordinat kampus)
-                double kampusLat = -7.4245; // Contoh latitude kampus
-                double kampusLon = 109.2291; // Contoh longitude kampus
-
-                bool isWithinRadius = (Math.Abs(request.Latitude - kampusLat) < 0.01) &&
-                                      (Math.Abs(request.Longitude - kampusLon) < 0.01);
-
-                if (!isWithinRadius)
-                {
-                    return BadRequest(new { message = "Lokasi berada di luar area kampus." });
-                }
-
-                // 4. Set waktu dari server dan simpan data
-                request.WaktuPresensi = DateTime.UtcNow;
-                request.Status = "Hadir";
-
-                _context.Presensi.Add(request);
+                model.WaktuPresensi = DateTime.Now;
+                _context.Presensi.Add(model);
                 await _context.SaveChangesAsync();
-
-                // 5. Commit transaksi jika semua lolos
                 await transaction.CommitAsync();
 
-                return Ok(new { message = "Presensi berhasil dicatat.", data = request });
+                return Ok(new { message = "Presensi berhasil dicatat.", data = model });
             }
             catch (Exception ex)
             {
-                // Rollback jika terjadi kesalahan server saat akses bersamaan
                 await transaction.RollbackAsync();
-                return StatusCode(500, new { message = "Terjadi kesalahan server.", error = ex.Message });
+                return StatusCode(500, new { message = "Terjadi kesalahan pada server.", error = ex.Message });
             }
         }
+
+        // 2. READ: Mendapatkan seluruh daftar riwayat presensi
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<Presensi>>> GetAllPresensi()
+        {
+            var list = await _context.Presensi.ToListAsync();
+            return Ok(list);
+        }
+
+        // 3. READ: Mendapatkan presensi berdasarkan ID tertentu
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Presensi>> GetPresensiById(int id)
+        {
+            var presensi = await _context.Presensi.FindAsync(id);
+            if (presensi == null)
+            {
+                return NotFound(new { message = "Data presensi tidak ditemukan." });
+            }
+            return Ok(presensi);
+        }
+
+        // 4. UPDATE: Mengubah data presensi (misal mengubah status Hadir jadi Izin/Sakit)
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdatePresensi(int id, [FromBody] Presensi model)
+        {
+            if (id != model.Id)
+            {
+                return BadRequest(new { message = "ID Presensi tidak cocok." });
+            }
+
+            var existingPresensi = await _context.Presensi.FindAsync(id);
+            if (existingPresensi == null)
+            {
+                return NotFound(new { message = "Data presensi yang akan diubah tidak ditemukan." });
+            }
+
+            existingPresensi.NamaMahasiswa = model.NamaMahasiswa;
+            existingPresensi.Status = model.Status;
+            existingPresensi.Keterangan = model.Keterangan;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+                return Ok(new { message = "Data presensi berhasil diperbarui.", data = existingPresensi });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Gagal memperbarui data.", error = ex.Message });
+            }
+        }
+
+        // 5. DELETE: Menghapus data presensi
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeletePresensi(int id)
+        {
+            var presensi = await _context.Presensi.FindAsync(id);
+            if (presensi == null)
+            {
+                return NotFound(new { message = "Data presensi tidak ditemukan." });
+            }
+
+            _context.Presensi.Remove(presensi);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Data presensi berhasil dihapus." });
+        }
+
+        private double CalculateDistance(double lat1, double lon1, double lat2, double lon2)
+        {
+            var dLat = ToRadians(lat2 - lat1);
+            var dLon = ToRadians(lon2 - lon1);
+            var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
+                    Math.Cos(ToRadians(lat1)) * Math.Cos(ToRadians(lat2)) *
+                    Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
+            var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+            return 6371 * c;
+        }
+
+        private double ToRadians(double angle) => angle * Math.PI / 180;
     }
 }

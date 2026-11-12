@@ -17,7 +17,7 @@ namespace SiApi.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.14")
+                .HasAnnotation("ProductVersion", "8.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -33,11 +33,22 @@ namespace SiApi.Migrations
                     b.Property<int>("JadwalKuliahId")
                         .HasColumnType("int");
 
+                    b.Property<string>("Keterangan")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<double>("Latitude")
                         .HasColumnType("float");
 
                     b.Property<double>("Longitude")
                         .HasColumnType("float");
+
+                    b.Property<string>("NamaMahasiswa")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NamaMataKuliah")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("NimMahasiswa")
                         .IsRequired()
