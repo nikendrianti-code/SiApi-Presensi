@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
+
 namespace SiApi.Models
 {
     public class Presensi
@@ -20,13 +21,13 @@ namespace SiApi.Models
         [ForeignKey("JadwalKuliahId")]
         public JadwalKuliah? JadwalKuliah { get; set; } // Foreign Key ke tabel Jadwal
 
-        [Required]
+        [Range(-90, 90)]
         public double Latitude { get; set; }
 
-        [Required]
+        [Range(-180, 180)]
         public double Longitude { get; set; }
 
-        public DateTime WaktuPresensi { get; set; } = DateTime.Now;
+        public DateTime WaktuPresensi { get; set; } = DateTime.UtcNow;
         public string Status { get; set; } = "Hadir";
         public string? Keterangan { get; set; }
     }

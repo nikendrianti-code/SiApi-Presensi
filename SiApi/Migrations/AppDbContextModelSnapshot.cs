@@ -88,7 +88,8 @@ namespace SiApi.Migrations
 
                     b.HasIndex("JadwalKuliahId");
 
-                    b.HasIndex("NimMahasiswa");
+                    b.HasIndex("NimMahasiswa", "JadwalKuliahId")
+                        .IsUnique();
 
                     b.ToTable("Presensi");
                 });

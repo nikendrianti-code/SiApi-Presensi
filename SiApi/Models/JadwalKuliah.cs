@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace SiApi.Models
 {
@@ -11,6 +12,7 @@ namespace SiApi.Models
         public string NamaMataKuliah { get; set; } = string.Empty;
 
         // Relasi (1 Jadwal bisa punya banyak Presensi)
+        [JsonIgnore]
         public ICollection<Presensi>? DaftarPresensi { get; set; }
     }
 }

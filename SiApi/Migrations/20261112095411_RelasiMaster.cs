@@ -51,6 +51,40 @@ namespace SiApi.Migrations
                     table.PrimaryKey("PK_Mahasiswa", x => x.Nim);
                 });
 
+            migrationBuilder.Sql(@"
+    INSERT INTO Mahasiswa (Nim, Nama)
+    SELECT DISTINCT
+        NimMahasiswa,
+        COALESCE(NULLIF(NamaMahasiswa, ''), NimMahasiswa)
+    FROM Presensi;
+");
+
+            migrationBuilder.Sql(@"
+    SET IDENTITY_INSERT JadwalKuliah ON;
+
+    INSERT INTO JadwalKuliah (Id, NamaMataKuliah)
+    SELECT DISTINCT
+        JadwalKuliahId,
+        COALESCE(NULLIF(NamaMataKuliah, ''), 'Mata Kuliah')
+    FROM Presensi;
+
+    SET IDENTITY_INSERT JadwalKuliah OFF;
+");
+
+            // Membuat data master jadwal kuliah awal
+            migrationBuilder.InsertData(
+                table: "JadwalKuliah",
+                columns: new[] { "Id", "NamaMataKuliah" },
+                values: new object[] { 1, "Mata Kuliah Belum Diisi" }
+            );
+
+            // Membuat data master mahasiswa awal
+            migrationBuilder.InsertData(
+                table: "Mahasiswa",
+                columns: new[] { "Nim", "Nama" },
+                values: new object[] { "220101010", "Nama Mahasiswa Belum Diisi" }
+            );
+
             migrationBuilder.CreateIndex(
                 name: "IX_Presensi_JadwalKuliahId",
                 table: "Presensi",
