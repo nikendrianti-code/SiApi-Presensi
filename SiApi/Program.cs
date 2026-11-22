@@ -21,6 +21,8 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+builder.Services.AddScoped<SiApi.Services.PresensiService>();
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {

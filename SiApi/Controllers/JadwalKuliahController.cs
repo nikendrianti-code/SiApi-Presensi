@@ -21,7 +21,10 @@ namespace SiApi.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var data = await _context.JadwalKuliah.ToListAsync();
+            var data = await _context.JadwalKuliah
+                .AsNoTracking()
+                .ToListAsync();
+
             return Ok(data);
         }
 
@@ -30,48 +33,94 @@ namespace SiApi.Controllers
         public async Task<IActionResult> GetById(int id)
         {
             var data = await _context.JadwalKuliah
-                .FindAsync(id);
+                .AsNoTracking()
+                .FirstOrDefaultAsync(j => j.Id == id);
 
             if (data == null)
-                return NotFound(new { message = "Jadwal kuliah tidak ditemukan." });
+                return NotFound(new
+                {
+                    message = "Jadwal kuliah tidak ditemukan."
+                });
 
             return Ok(data);
         }
 
         // POST: api/JadwalKuliah
         [HttpPost]
-        public async Task<IActionResult> Create(JadwalKuliah model)
+        public async Task<IActionResult> Create(
+            [FromBody] JadwalKuliah model)
         {
             if (string.IsNullOrWhiteSpace(model.NamaMataKuliah))
-                return BadRequest(new { message = "Nama mata kuliah wajib diisi." });
+                return BadRequest(new
+                {
+                    message = "Nama mata kuliah wajib diisi."
+                });
+
+            model.NamaMataKuliah = model.NamaMataKuliah.Trim();
+
+            if (model.NamaMataKuliah.Length > 200)
+                return BadRequest(new
+                {
+                    message = "Nama mata kuliah terlalu panjang."
+                });
 
             model.Id = 0;
             model.DaftarPresensi = null;
 
-            _context.JadwalKuliah.Add(model);
-            await _context.SaveChangesAsync();
+            try
+            {
+                _context.JadwalKuliah.Add(model);
+                await _context.SaveChangesAsync();
 
-            return CreatedAtAction(
-                nameof(GetById),
-                new { id = model.Id },
-                model
-            );
+                return CreatedAtAction(
+                    nameof(GetById),
+                    new { id = model.Id },
+                    model
+                );
+            }
+            catch (DbUpdateException)
+            {
+                return Conflict(new
+                {
+                    message = "Gagal menyimpan jadwal kuliah."
+                });
+            }
         }
 
         // PUT: api/JadwalKuliah/{id}
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, JadwalKuliah model)
+        public async Task<IActionResult> Update(
+            int id, [FromBody] JadwalKuliah model)
         {
             if (id != model.Id)
-                return BadRequest(new { message = "ID jadwal tidak cocok." });
-
-            var existing = await _context.JadwalKuliah.FindAsync(id);
-
-            if (existing == null)
-                return NotFound(new { message = "Jadwal kuliah tidak ditemukan." });
+                return BadRequest(new
+                {
+                    message = "ID jadwal tidak cocok."
+                });
 
             if (string.IsNullOrWhiteSpace(model.NamaMataKuliah))
-                return BadRequest(new { message = "Nama mata kuliah wajib diisi." });
+                return BadRequest(new
+                {
+                    message = "Nama mata kuliah wajib diisi."
+                });
+
+            model.NamaMataKuliah =
+                model.NamaMataKuliah.Trim();
+
+            if (model.NamaMataKuliah.Length > 200)
+                return BadRequest(new
+                {
+                    message = "Nama mata kuliah terlalu panjang."
+                });
+
+            var existing =
+                await _context.JadwalKuliah.FindAsync(id);
+
+            if (existing == null)
+                return NotFound(new
+                {
+                    message = "Jadwal kuliah tidak ditemukan."
+                });
 
             existing.NamaMataKuliah = model.NamaMataKuliah;
 
@@ -88,10 +137,14 @@ namespace SiApi.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var jadwal = await _context.JadwalKuliah.FindAsync(id);
+            var jadwal =
+                await _context.JadwalKuliah.FindAsync(id);
 
             if (jadwal == null)
-                return NotFound(new { message = "Jadwal kuliah tidak ditemukan." });
+                return NotFound(new
+                {
+                    message = "Jadwal kuliah tidak ditemukan."
+                });
 
             bool hasPresensi = await _context.Presensi
                 .AnyAsync(p => p.JadwalKuliahId == id);
@@ -105,7 +158,10 @@ namespace SiApi.Controllers
             _context.JadwalKuliah.Remove(jadwal);
             await _context.SaveChangesAsync();
 
-            return Ok(new { message = "Jadwal kuliah berhasil dihapus." });
+            return Ok(new
+            {
+                message = "Jadwal kuliah berhasil dihapus."
+            });
         }
     }
 }
